@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "t2mfdf-reproduction"
+version = "0.2.0"
+description = "Independent modular T2MFDF research implementation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["torch>=2.3,<2.6", "numpy>=1.24,<3", "transformers==4.46.3",
+                "PyWavelets==1.8.0", "scipy==1.15.3", "h5py>=3.10,<4"]
+
+[project.optional-dependencies]
+test = ["pytest==8.3.5"]
+
+[project.scripts]
+t2mfdf = "t2mfdf.run:main"
+t2mfdf-experiments = "t2mfdf.experiments:main"
+t2mfdf-predict = "t2mfdf.inference:main"
+
+[tool.setuptools.packages.find]
+include = ["t2mfdf*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,22 @@
+{
+  "test_type": "pretrained_software_validation_only",
+  "model": "data/pretrained/bert-base-uncased",
+  "model_type": "bert",
+  "device": "cuda",
+  "pretrained_parameters": 108891648,
+  "total_parameters": 170351972,
+  "loss": 2.4904677867889404,
+  "finite_gradients": {
+    "temporal.frequency.weight": true,
+    "text_projection.weight": true,
+    "text_context.layers.0.self_attn.in_proj_weight": true,
+    "vocabulary_mapping.weight": true,
+    "classifier.weight": true
+  },
+  "checkpoint_reload_matches": true,
+  "optimizer_step_completed": true,
+  "route": "prose",
+  "frozen_language_model": true,
+  "patches": 63,
+  "diagnostic_accuracy_measured": false
+}

@@ -1,0 +1,5 @@
+path,key,label,domain,fs,group,column,skiprows
+../data/raw/PU/record.mat,record/Y/6/Data,1,PU,64000,PU-bearing-01,,
+../data/raw/CWRU/record.mat,X097_DE_time,0,CWRU,12000,CWRU-record-097,,
+../data/raw/JNU/record.csv,,2,JNU,50000,JNU-record-01,0,1
+../data/raw/HIT/record.h5,vibration/channel,0,HIT,25000,HIT-record-01,,

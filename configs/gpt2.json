@@ -1,0 +1,10 @@
+{
+  "text_backend": "bert",
+  "backbone": "gpt2",
+  "bert_model": "openai-community/gpt2",
+  "text_scope": "patch",
+  "route": "prose",
+  "text_context_layers": 1,
+  "max_text_length": 256,
+  "paper_class_ratios": true
+}

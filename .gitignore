@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+tmp/
+data/
+runs/
+*.zip
+*.pyc
+*.egg-info/
+build/
+dist/
+T2MFDF_reproduction/
+*.pt
+*.pth
+.env

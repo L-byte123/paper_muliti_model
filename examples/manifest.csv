@@ -1,0 +1,5 @@
+path,key,label,domain,fs,group
+raw/97.mat,X097_DE_time,0,CWRU,12000,CWRU-normal-record1
+raw/105.mat,X105_DE_time,1,CWRU,12000,CWRU-inner-record1
+raw/130.mat,X130_DE_time,2,CWRU,12000,CWRU-outer-record1
+raw/118.mat,X118_DE_time,3,CWRU,12000,CWRU-ball-record1

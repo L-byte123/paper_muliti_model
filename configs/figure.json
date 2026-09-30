@@ -1,0 +1,7 @@
+{
+  "text_backend": "bert",
+  "route": "figure",
+  "text_scope": "window",
+  "source_tokens": 2000,
+  "num_classes": 4
+}
