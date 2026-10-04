@@ -1,7 +1,7 @@
 """Prepare the selected 16 CWRU recordings using the shared importer.
 
-Normal-record sampling rate is an explicit, recorded assumption, not inferred
-from array length. No resampling or GPU training is performed.
+Normal-record sampling rate is explicit and recorded, not inferred from array
+length. Signals are anti-alias filtered and resampled to 12 kHz before windowing.
 """
 import argparse
 import csv
@@ -41,17 +41,18 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
     protocol = dict(normal_fs=args.normal_fs, fault_fs=12000,
-                    normal_fs_status='working assumption; not independently confirmed by file metadata',
-                    normal_fs_reference='https://raw.githubusercontent.com/ivarejao/vibdata/master/vibdata/raw/CWRU/CWRU.csv',
+                    normal_fs_status='literature-supported protocol; MAT files lack explicit sampling-rate metadata',
+                    normal_fs_reference='https://pmc.ncbi.nlm.nih.gov/articles/PMC10857163/ (Table 5)',
+                    output_fs=12000, resampling='scipy.signal.resample_poly, anti-alias FIR, before windowing and noise',
                     window_length=1024, stride=1024, seed=42,
                     scope='16-record subset; not full paper reproduction',
                     group_unit='recording; not independent physical bearing',
-                    caveat='Different loads can share a bearing. Recording-disjoint results do not establish bearing-disjoint generalization. Sampling-rate assumption must be resolved before reporting frequency-based results.')
+                    caveat='Different loads can share a bearing. Recording-disjoint results do not establish bearing-disjoint generalization. Normal 48 kHz is supported by published studies, not a per-file certificate from the data producer; this preprocessing choice is not confirmed as the T2MFDF authors protocol.')
     (out / 'protocol.json').write_text(json.dumps(protocol, indent=2), encoding='utf-8')
     reports = {}
     for name, snr in [('cwru_clean.npz', None), ('cwru_snr10.npz', 10)]:
         path = out / name
-        prepare(manifest, path, stride=1024, snr=snr, seed=42)
+        prepare(manifest, path, stride=1024, snr=snr, seed=42, target_fs=12000)
         reports[name] = inspect(path)
         print(f'{name}: {reports[name]["samples"]} windows', flush=True)
     (out / 'inspection.json').write_text(json.dumps(reports, indent=2), encoding='utf-8')

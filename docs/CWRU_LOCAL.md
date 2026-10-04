@@ -1,40 +1,66 @@
-# 已下载的 16 条 CWRU 记录
+# CWRU 单数据集实验
 
-通用导入器 `t2mfdf.prepare`、通道读取器 `t2mfdf.rawio` 和检查器
-`t2mfdf.inspect_data` 已在原始交付中提供。本次补充的是选定文件的适配入口，
-复用通用导入器，不改变模型。原始数据、处理数据和权重不提交 Git。
+最终使用目录：`D:\多模态故障\CWRU\processed\cwru16_12k_v3`。
+旧的 `cwru16_fs12000_v1` 和中间检查目录 `cwru16_12k_v2` 不用于实验。
 
-在项目根目录运行（输出目录必须尚不存在）：
+## 处理协议
+
+16 个原始文件保留不动。正常记录 97–100 使用对应编号的 DE 通道，
+按文献支持的 48 kHz 通过 scipy.signal.resample_poly 抗混叠降采样到 12 kHz；
+故障记录保持 12 kHz。先重采样，再以 1024 点窗口和步长切分，最后添加噪声。
+正常 413、内圈 476、外圈 475、滚动体 473，共 1837 个窗口。
+标签顺序为正常 0、内圈 1、外圈 2、滚动体 3。
+99.mat 只取 X099_DE_time，避免重复导入附带的 X098 通道。
+
+依据：https://pmc.ncbi.nlm.nih.gov/articles/PMC10857163/ 的表 5。
+这是文献支持的复现处理方案，不是官方逐文件采样率证明；MAT 内无明确采样率字段，
+也不能声称 T2MFDF 作者使用了同样的重采样协议。此前第三方表格的 12 kHz 标注不再用作默认方案。
+
+输出包括干净版 cwru_clean.npz、10 dB 噪声版 cwru_snr10.npz、清单、协议和检查报告。
+两种版本不要合并。每条采集记录作为一个 group，不同分区不会共享同一记录。
+不同负载可能共享物理轴承，不能据此声称是独立轴承测试。
+
+重新处理时必须换一个尚不存在的输出目录：
 
 ```powershell
-& '.\.venv\Scripts\python.exe' -m scripts.prepare_cwru --raw 'D:\多模态故障\CWRU' --output-dir 'D:\多模态故障\CWRU\processed\cwru16_fs12000_v1' --normal-fs 12000
+& '.\.venv\Scripts\python.exe' -m scripts.prepare_cwru --raw 'D:\多模态故障\CWRU' --output-dir 'D:\多模态故障\CWRU\processed\cwru16_rerun' --normal-fs 48000
 ```
 
-输出 `manifest.csv`、`protocol.json`、`inspection.json`，以及
-`cwru_clean.npz`（无人工噪声）和 `cwru_snr10.npz`（10 dB 高斯噪声），
-各自附有导入来源 JSON。每窗 1024 点，步长 1024，随机种子 42。
-两份数据是同一批记录的不同版本，不要拼接后随机划分。
+## 第一次训练
 
-选择正常 97–100、内圈 105–108、外圈 130–133、滚动体 118–121。
-故障直径为 0.007 英寸，外圈位置为 6 点钟方向，包含四个负载。
-标签为正常 0、内圈 1、外圈 2、滚动体 3。只选择匹配文件编号的 DE 通道，
-尤其 99.mat 选择 X099_DE_time，不导入其中附带的 X098_DE_time。
+以下命令由用户决定何时运行。准备工作没有执行真实模型训练。
+打开 PowerShell，依次执行：
 
-## 采样率与解释限制
+```powershell
+cd 'C:\Users\李鑫文\Documents\ChatGPT\多模态故障诊断'
+$py = (Resolve-Path '.\.venv\Scripts\python.exe').Path
+$env:HF_HOME = 'D:\多模态故障\CWRU\hf_cache'
+$env:HF_HUB_CACHE = 'D:\多模态故障\CWRU\hf_cache\hub'
+$env:TRANSFORMERS_CACHE = 'D:\多模态故障\CWRU\hf_cache\hub'
+$data = 'D:\多模态故障\CWRU\processed\cwru16_12k_v3\cwru_clean.npz'
+$run = 'D:\多模态故障\CWRU\runs\single_clean_seed42'
+& $py -m t2mfdf.run train --data $data --config configs/cwru_single.json --output $run --device cuda
+```
 
-正常记录的 12000 Hz 是**工作假设，尚未由原始文件元数据独立确认**，依据是
-[Vibdata 元数据表](https://raw.githubusercontent.com/ivarejao/vibdata/master/vibdata/raw/CWRU/CWRU.csv)。
-它不是 CWRU 官方逐文件采样率证明。官方实验说明涉及 12 kHz 和 48 kHz，
-不同公开处理实现对此存在差异。命令强制明确指定 `--normal-fs`，并将其写入
-`protocol.json`。本入口不做重采样；正式报告频率特征相关实验前应核实该假设。
-若确认正常记录为 48000 Hz，应使用新的输出目录并传入 `--normal-fs 48000`；
-是否统一重采样需另行确定实验协议，不能只修改 fs 来冒充重采样。
+首次运行需要从 Hugging Face 获取完整 BERT 权重，网络必须可达。
+使用完整模型、batch=4、梯度累积16、AMP和BERT分块8；这是8GB显存适配起点，
+不保证所有运行环境不会显存不足。最多5轮，验证损失选择最佳权重。
+单数据集不传 --target CWRU，否则所有数据都会成为目标域，训练源域为空。
+关闭论文类比例下采样，保留本子集全部窗口；这不是论文完整实验协议。
+每类只有4条记录，所以按记录划分是每类2条训练、1条验证、1条测试，不能称严格80/10/10。
 
-group 是采集记录 ID。检查器验证能否按记录划分，并不会自动保存正式训练划分；
-训练入口负责保存划分。不同负载可能共享同一物理轴承，因此记录互斥不代表
-轴承互斥，也不能据此声称对新轴承的泛化性能。这只是 16 条记录的子集，
-并非论文完整跨数据集实验。
+## 看结果
 
-官方文件映射：
-- https://engineering.case.edu/bearingdatacenter/normal-baseline-data
-- https://engineering.case.edu/bearingdatacenter/12k-drive-end-bearing-fault-data
+训练完成会自动用最佳权重评估测试集，结果在运行目录 metrics.json，
+包括 accuracy、macro_f1 和 confusion_matrix。矩阵行是真实类别，列是预测类别。
+
+```powershell
+Get-Content "$run\metrics.json"
+# 可选：重新评估同一测试集
+& $py -m t2mfdf.run evaluate --data $data --checkpoint "$run\best.pt" --split test --device cuda
+```
+
+不要用 --split all 代替测试集，这会把训练样本也算进去。
+中断后在同一训练命令后添加 --resume，从已保存的轮次恢复。
+噪声实验改为 cwru_snr10.npz，并使用另一个运行目录。
+单次结果只代表这个CWRU子集；不代表跨数据集迁移或整篇论文数值复现。
